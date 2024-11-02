@@ -1,0 +1,150 @@
+*************Models.py**************
+from django.db import models
+
+class User(models.Model):
+    GENDER_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female'),
+        ('O', 'Other'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    address = models.TextField()
+    state = models.CharField(max_length=100)
+    phone_number = models.CharField(max_length=15)
+    website_url = models.URLField(blank=True, null=True)
+    email_id = models.EmailField()
+    photo = models.ImageField(upload_to='photos/', blank=True, null=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    
+    def __str__(self):
+        return self.name
+
+*******admin.py*******
+
+from django.contrib import admin
+from .models import User
+# Register your models here.
+
+admin.site.register(User)
+
+************forms.py***************
+from django import forms
+from .models import User
+
+class UserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['name', 'address', 'state', 'phone_number', 'website_url', 'email_id', 'photo', 'date_of_birth', 'gender']
+
+************views.py****************
+from django.shortcuts import render, redirect
+from .models import User
+from .forms import UserForm
+
+def user_form(request):
+    if request.method == 'POST':
+        form = UserForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('user_list')
+    else:
+        form = UserForm()
+    return render(request, 'user_form.html', {'form': form})
+
+def user_list(request):
+    users = User.objects.all()
+    return render(request, 'user_list.html', {'users': users})
+
+************user_data_app/urls.py**************
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('add/', views.user_form, name='user_form'),
+    path('list/', views.user_list, name='user_list'),
+]
+
+
+*************Project/urls.py**************
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('users/', include('user_data_app.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+***********Templates/usr_form.html*********************
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Information Form</title>
+</head>
+<body>
+    <h1>User Information Form</h1>
+    <form action="" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
+
+
+*************templates/user_list.html*****************
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User List</title>
+</head>
+<body>
+    <h1>All Users</h1>
+    <table border="1">
+        <tr>
+            <th>Name</th>
+            <th>Address</th>
+            <th>State</th>
+            <th>Phone Number</th>
+            <th>Website URL</th>
+            <th>Email ID</th>
+            <th>Photo</th>
+            <th>Date of Birth</th>
+            <th>Gender</th>
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.name }}</td>
+            <td>{{ user.address }}</td>
+            <td>{{ user.state }}</td>
+            <td>{{ user.phone_number }}</td>
+            <td>{{ user.website_url }}</td>
+            <td>{{ user.email_id }}</td>
+            <td>
+                {% if user.photo %}
+                    <img src="{{ user.photo.url }}" alt="Photo" width="50">
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+            <td>{{ user.date_of_birth }}</td>
+            <td>{{ user.get_gender_display }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+
+
